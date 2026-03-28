@@ -1,0 +1,76 @@
+.pedalboard {
+  display: flex;
+  gap: 20px;
+  padding: 20px;
+  background: #222;
+  border-radius: 15px;
+  justify-content: center;
+  flex-wrap: wrap;
+  font-family: 'Arial', sans-serif;
+}
+
+.pedal {
+  background: #444;
+  border-radius: 10px;
+  padding: 15px;
+  width: 150px;
+  text-align: center;
+  color: #fff;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.5);
+  transition: transform 0.1s;
+}
+
+.pedal:hover {
+  transform: translateY(-3px);
+}
+
+.pedal h3 {
+  margin-bottom: 10px;
+  font-size: 1.1em;
+}
+
+.pedal input[type="range"] {
+  width: 100%;
+  margin: 10px 0;
+  -webkit-appearance: none;
+  height: 8px;
+  border-radius: 5px;
+  background: #999;
+}
+
+.pedal input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  background: #ff6347;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid #fff;
+}
+
+/* Estilo base de los botones */
+.pedal button {
+  margin-top: 5px;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: transform 0.1s, box-shadow 0.1s; /* transición suave */
+  box-shadow: 0 4px #222; /* sombra inicial */
+}
+
+/* Efecto al pulsar */
+.pedal button:active {
+  transform: translateY(3px); /* simula hundir el botón */
+  box-shadow: 0 1px #222;     /* sombra más corta */
+}
+/* Estado ON por pedal (clase añadida desde JS) */
+.pedal.on.distortion { background: #cc3700; } /* rojo fuego */
+.pedal.on.delay { background: #0074e4; }       /* azul */
+.pedal.on.reverb { background: #28a428; }      /* verde */
+
+.pedal.distortion button { background: #ff4500; color: #fff; }
+.pedal.amp button { background: #ffa500; color: #fff; }
+.pedal.delay button { background: #1e90ff; color: #fff; }
+.pedal.reverb button { background: #32cd32; color: #fff; }
