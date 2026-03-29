@@ -1,5 +1,5 @@
 <script setup>
-import Pedalboard from './components/Pedalboard.vue';
+import Pedalboard from './components/PedalBoard.vue';
 </script>
 
 <template>
