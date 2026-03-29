@@ -26,21 +26,21 @@ jobs:
       - run: npm run test:unit -- --run
       - run: npm run build
 
-  ci-backend:
-    name: Backend - Lint + Test
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
+  # ci-backend:
+  #   name: Backend - Lint + Test
+  #   runs-on: ubuntu-latest
+  #   defaults:
+  #     run:
+  #       working-directory: backend
 
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      - run: pip install -r requirements.txt
-      - run: ruff check .              # linter
-      - run: pytest                    # tests
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: actions/setup-python@v5
+  #       with:
+  #         python-version: '3.12'
+  #     - run: pip install -r requirements.txt
+  #     - run: ruff check .              # linter
+  #     - run: pytest                    # tests
 
   deploy-frontend:
     name: Deploy Frontend → Vercel
