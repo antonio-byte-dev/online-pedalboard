@@ -1,6 +1,6 @@
 <script setup>
 import { useAudioEngine } from '@/composables/useAudioEngine'
-import Pedal from './Pedal.vue'
+import Pedal from './EffectPedal.vue'
 
 const {
   effectsActive,

@@ -2,13 +2,13 @@
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "plugins": ["eslint", "unicorn", "oxc", "vue", "vitest"],
   "ignorePatterns": ["public/libs/**"],
-  "globals": {
-    "Pizzicato": "readonly"
-  },
   "env": {
     "browser": true
   },
+  "globals": {
+    "Pizzicato": "writable"
+  },
   "categories": {
     "correctness": "error"
-  },
+  }
 }
