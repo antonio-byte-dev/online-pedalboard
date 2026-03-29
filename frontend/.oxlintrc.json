@@ -5,10 +5,7 @@
   "env": {
     "browser": true
   },
-  "globals": {
-    "Pizzicato": "writable"
-  },
   "categories": {
     "correctness": "error"
-  }
+  },
 }

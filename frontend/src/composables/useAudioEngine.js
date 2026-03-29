@@ -1,3 +1,4 @@
+/* global Pizzicato */
 import { ref, reactive } from 'vue'
 
 export function useAudioEngine() {
