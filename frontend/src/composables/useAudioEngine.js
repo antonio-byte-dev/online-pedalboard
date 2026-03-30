@@ -1,80 +1,198 @@
-/* global Pizzicato */
 import { ref, reactive } from 'vue'
 
 export function useAudioEngine() {
-  let input = null
-  let distortion, delay, reverb, lowPass
+  let ctx = null
+  let sourceNode = null
+  let micStream = null
+  let preCabinetWorklet = null
+  let postCabinetWorklet = null
+  let cabinetConvolver = null
+  let masterGain = null
 
   const micReady = ref(false)
   const effectsActive = reactive({
-    distortion: true,
-    delay: true,
-    reverb: true
+    distortion: false,
+    delay: false,
+    reverb: false
   })
 
-  function initEffects() {
-    distortion = new Pizzicato.Effects.Distortion({ gain: 0.2 })
-    delay      = new Pizzicato.Effects.Delay({ feedback: 0.4, time: 0.3, mix: 0.0 })
-    reverb     = new Pizzicato.Effects.Reverb({ time: 0.5, decay: 0.4, mix: 0.0 })
-    lowPass    = new Pizzicato.Effects.LowPassFilter({ frequency: 800, peak: 1 })
+  async function loadIRToConvolver(convolver, url) {
+    try {
+      const response = await fetch(url)
+      const arrayBuffer = await response.arrayBuffer()
+      const audioBuffer = await ctx.decodeAudioData(arrayBuffer)
+
+      const maxSamples = Math.min(audioBuffer.length, ctx.sampleRate * 0.1)
+
+      // Convert mono IR to stereo by duplicating the channel
+      const stereoBuffer = ctx.createBuffer(2, maxSamples, ctx.sampleRate)
+      const monoData = audioBuffer.getChannelData(0).subarray(0, maxSamples)
+      stereoBuffer.getChannelData(0).set(monoData)
+      stereoBuffer.getChannelData(1).set(monoData)
+
+      convolver.buffer = stereoBuffer
+    } catch (err) {
+      console.error('Error loading IR:', url, err)
+    }
   }
 
-  function startAudio() {
-    if (input) return
+  async function buildChain() {
+    await ctx.audioWorklet.addModule('/worklets/pre-cabinet-processor.js')
+    await ctx.audioWorklet.addModule('/worklets/post-cabinet-processor.js')
 
-    if (!Pizzicato.context) {
-      Pizzicato.context = new (window.AudioContext || window.webkitAudioContext)({
-        latencyHint: 'interactive',
-        sampleRate: 44100
-      })
-    }
+    preCabinetWorklet = new AudioWorkletNode(ctx, 'pre-cabinet-processor', {
+      numberOfInputs: 1,
+      numberOfOutputs: 1,
+      outputChannelCount: [2],
+      channelCount: 2,
+      channelCountMode: 'explicit'
+    })
 
-    initEffects()
+    postCabinetWorklet = new AudioWorkletNode(ctx, 'post-cabinet-processor', {
+      numberOfInputs: 1,
+      numberOfOutputs: 1,
+      outputChannelCount: [2]
+    })
 
-    Pizzicato.context.resume().then(() => {
-      input = new Pizzicato.Sound({ source: 'input' }, () => {
-        micReady.value = true
+    cabinetConvolver = ctx.createConvolver()
+    cabinetConvolver.channelCount = 2
+    cabinetConvolver.channelCountMode = 'explicit'
+    cabinetConvolver.channelInterpretation = 'speakers'
 
-        if (effectsActive.distortion) input.addEffect(distortion)
-        input.addEffect(lowPass)
-        if (effectsActive.delay)      input.addEffect(delay)
-        if (effectsActive.reverb)     input.addEffect(reverb)
+    masterGain = ctx.createGain()
+    masterGain.gain.value = 1.0
+    masterGain.channelCount = 2
+    masterGain.channelCountMode = 'explicit'
+    masterGain.channelInterpretation = 'speakers'
 
-        input.play()
-      })
+    // Chain: preCabinet → IR → postCabinet → master → destination
+    preCabinetWorklet.connect(cabinetConvolver)
+    cabinetConvolver.connect(postCabinetWorklet)
+    postCabinetWorklet.connect(masterGain)
+    masterGain.connect(ctx.destination)
+
+    await loadIRToConvolver(cabinetConvolver, '/ir/default.wav')
+
+    // Apply initial effect states
+    preCabinetWorklet.parameters.get('distAmount').value = effectsActive.distortion ? 50 : 0
+    postCabinetWorklet.port.postMessage({
+      delayMix:      effectsActive.delay  ? 0.5 : 0.0,
+      reverbMix:     effectsActive.reverb ? 0.5 : 0.0,
+      delayFeedback: 0.4,
+      delayTime:     0.3,
+      reverbDecay:   0.5
     })
   }
 
-  function toggleEffect(effectName) {
-    if (!input) return
+  async function startAudio() {
+    if (micReady.value) return
 
+    ctx = new (window.AudioContext || window.webkitAudioContext)({
+      latencyHint: 0.01,
+      sampleRate: 44100
+    })
+
+    await ctx.resume()
+    await buildChain()
+
+    micStream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: false,
+        latency: 0,
+        channelCount: 1
+      },
+      video: false
+    })
+
+    sourceNode = ctx.createMediaStreamSource(micStream)
+    sourceNode.connect(preCabinetWorklet)
+
+    micReady.value = true
+  }
+
+  function toggleEffect(effectName) {
     effectsActive[effectName] = !effectsActive[effectName]
 
-    if (!micReady.value) return
-
-    const efectos = { distortion, delay, reverb }
-    const efecto = efectos[effectName]
-
-    if (effectsActive[effectName]) {
-      input.addEffect(efecto)
-    } else {
-      input.removeEffect(efecto)
+    switch (effectName) {
+      case 'distortion':
+        preCabinetWorklet.parameters.get('distAmount').value =
+          effectsActive.distortion ? 50 : 0
+        break
+      case 'delay':
+        postCabinetWorklet.port.postMessage({
+          delayMix: effectsActive.delay ? 0.5 : 0.0
+        })
+        break
+      case 'reverb':
+        postCabinetWorklet.port.postMessage({
+          reverbMix: effectsActive.reverb ? 0.5 : 0.0
+        })
+        break
     }
   }
 
-  function setDist(value)      { if (distortion) distortion.gain        = parseFloat(value) }
-  function setDelayMix(value)  { if (delay)      delay.mix              = parseFloat(value) }
-  function setReverbMix(value) { if (reverb)     reverb.mix             = parseFloat(value) }
-  function setTone(value)      { if (lowPass)     lowPass.frequency      = parseFloat(value) }
+  async function loadCustomIR(file) {
+    const arrayBuffer = await file.arrayBuffer()
+    const audioBuffer = await ctx.decodeAudioData(arrayBuffer)
+    cabinetConvolver.buffer = audioBuffer
+  }
+
+  function setDist(value) {
+    if (preCabinetWorklet)
+      preCabinetWorklet.parameters.get('distAmount').value = parseFloat(value) * 500
+  }
+
+  function setBass(value) {
+    if (preCabinetWorklet)
+      preCabinetWorklet.parameters.get('bass').value = parseFloat(value)
+  }
+
+  function setMid(value) {
+    if (preCabinetWorklet)
+      preCabinetWorklet.parameters.get('mid').value = parseFloat(value)
+  }
+
+  function setTreble(value) {
+    if (preCabinetWorklet)
+      preCabinetWorklet.parameters.get('treble').value = parseFloat(value)
+  }
+
+  function setDelayMix(value) {
+    if (postCabinetWorklet)
+      postCabinetWorklet.port.postMessage({ delayMix: parseFloat(value) })
+  }
+
+  function setDelayFeedback(value) {
+    if (postCabinetWorklet)
+      postCabinetWorklet.port.postMessage({ delayFeedback: parseFloat(value) })
+  }
+
+  function setDelayTime(value) {
+    if (postCabinetWorklet)
+      postCabinetWorklet.port.postMessage({ delayTime: parseFloat(value) })
+  }
+
+  function setReverbMix(value) {
+    if (postCabinetWorklet)
+      postCabinetWorklet.port.postMessage({ reverbMix: parseFloat(value) })
+  }
+
+  function setReverbDecay(value) {
+    if (postCabinetWorklet)
+      postCabinetWorklet.port.postMessage({ reverbDecay: parseFloat(value) })
+  }
 
   return {
     micReady,
     effectsActive,
     startAudio,
     toggleEffect,
+    loadCustomIR,
     setDist,
-    setDelayMix,
-    setReverbMix,
-    setTone
+    setBass, setMid, setTreble,
+    setDelayMix, setDelayFeedback, setDelayTime,
+    setReverbMix, setReverbDecay
   }
 }

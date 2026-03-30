@@ -1,32 +1,37 @@
 <script setup>
-import { computed } from 'vue'
-
-const props = defineProps({
-  nombre: String,
-  tipo: String,
-  min: { type: Number, default: 0 },
-  max: { type: Number, default: 1 },
-  step: { type: Number, default: 0.01 },
-  conBoton: { type: Boolean, default: false },
-  activo: { type: Boolean, default: true }
+defineProps({
+  name: String,
+  type: String,
+  hasButton: { type: Boolean, default: false },
+  active:    { type: Boolean, default: true },
+  controls:  { type: Array, default: () => [] }
 })
 
-defineEmits(['cambiarValor', 'toggleEfecto'])
+defineEmits(['changeValue', 'toggleEffect'])
 
-const valorInicial = computed(() => (props.min + props.max) / 2)
+function initialValue(control) {
+  return (control.min + control.max) / 2
+}
 </script>
 
 <template>
-  <div class="pedal" :class="[tipo, { on: activo }]">
-    <h3>{{ nombre }}</h3>
-    <input
-      type="range"
-      :min="min"
-      :max="max"
-      :step="step"
-      :value="valorInicial"
-      @change="$emit('cambiarValor', $event.target.value)"
-    />
-    <button v-if="conBoton" @click="$emit('toggleEfecto', tipo)">ON/OFF</button>
+  <div class="pedal" :class="[type, { on: active }]">
+    <h3>{{ name }}</h3>
+
+    <div v-for="control in controls" :key="control.parameter" class="control">
+      <label>{{ control.name }}</label>
+      <input
+        type="range"
+        :min="control.min"
+        :max="control.max"
+        :step="control.step"
+        :value="initialValue(control)"
+        @change="$emit('changeValue', { parameter: control.parameter, value: $event.target.value })"
+      />
+    </div>
+
+    <slot name="extra" />
+
+    <button v-if="hasButton" @click="$emit('toggleEffect', type)">ON/OFF</button>
   </div>
 </template>
