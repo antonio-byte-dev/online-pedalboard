@@ -1,3 +1,4 @@
+/* global AudioWorkletProcessor, sampleRate, registerProcessor */
 class PostCabinetProcessor extends AudioWorkletProcessor {
   constructor() {
     super()

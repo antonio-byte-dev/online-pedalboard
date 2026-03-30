@@ -1,3 +1,4 @@
+/* global AudioWorkletProcessor, sampleRate, registerProcessor */
 class PreCabinetProcessor extends AudioWorkletProcessor {
   static get parameterDescriptors() {
     return [
