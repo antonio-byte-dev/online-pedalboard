@@ -5,7 +5,7 @@
   background: #222;
   border-radius: 15px;
   justify-content: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   font-family: 'Arial', sans-serif;
 }
 
