@@ -5,12 +5,7 @@
   "env": {
     "browser": true
   },
-  "globals": {
-    "AudioWorkletProcessor": "readonly",
-    "registerProcessor": "readonly",
-    "sampleRate": "readonly"
-  },
   "categories": {
     "correctness": "error"
-  }
+  },
 }
