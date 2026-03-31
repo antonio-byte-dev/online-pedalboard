@@ -1,0 +1,169 @@
+import pytest
+from fastapi.testclient import TestClient
+
+# --- Upload ---
+
+def test_upload_ir_success(client: TestClient, auth_headers, test_wav_file):
+    response = client.post("/irs/", 
+        data={
+            "name": "My IR",
+            "description": "A great cabinet IR",
+            "tags": "marshall,v30"
+        },
+        files={"file": ("cabinet.wav", test_wav_file, "audio/wav")},
+        headers=auth_headers
+    )
+    assert response.status_code == 201
+    data = response.json()
+    assert data["name"] == "My IR"
+    assert data["description"] == "A great cabinet IR"
+    assert data["tags"] == "marshall,v30"
+    assert data["file_url"] == "http://localhost:9000/irs/test.wav"
+    assert "id" in data
+    assert "created_at" in data
+
+def test_upload_ir_unauthenticated(client: TestClient, test_wav_file):
+    response = client.post("/irs/",
+        data={"name": "My IR"},
+        files={"file": ("cabinet.wav", test_wav_file, "audio/wav")}
+    )
+    assert response.status_code == 401
+
+def test_upload_ir_invalid_file_type(client: TestClient, auth_headers):
+    response = client.post("/irs/",
+        data={"name": "My IR"},
+        files={"file": ("cabinet.mp3", b"fake mp3 data", "audio/mpeg")},
+        headers=auth_headers
+    )
+    assert response.status_code == 400
+    assert "Only .wav files are accepted" in response.json()["detail"]
+
+def test_upload_ir_missing_name(client: TestClient, auth_headers, test_wav_file):
+    response = client.post("/irs/",
+        files={"file": ("cabinet.wav", test_wav_file, "audio/wav")},
+        headers=auth_headers
+    )
+    assert response.status_code == 422
+
+# --- List ---
+
+def test_list_irs_empty(client: TestClient):
+    response = client.get("/irs/")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["items"] == []
+    assert data["total"] == 0
+
+def test_list_irs(client: TestClient, test_ir):
+    response = client.get("/irs/")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total"] == 1
+    assert data["items"][0]["name"] == "Test IR"
+
+def test_list_irs_search(client: TestClient, test_ir):
+    response = client.get("/irs/?search=Test")
+    assert response.status_code == 200
+    assert response.json()["total"] == 1
+
+    response = client.get("/irs/?search=nonexistent")
+    assert response.status_code == 200
+    assert response.json()["total"] == 0
+
+def test_list_irs_filter_by_tags(client: TestClient, test_ir):
+    response = client.get("/irs/?tags=marshall")
+    assert response.status_code == 200
+    assert response.json()["total"] == 1
+
+    response = client.get("/irs/?tags=fender")
+    assert response.status_code == 200
+    assert response.json()["total"] == 0
+
+def test_list_irs_pagination(client: TestClient, db, test_user):
+    from app.models.ir import IR
+    for i in range(5):
+        db.add(IR(
+            name=f"IR {i}",
+            file_url="http://localhost:9000/irs/test.wav",
+            file_name=f"test{i}.wav",
+            author_id=test_user.id
+        ))
+    db.commit()
+
+    response = client.get("/irs/?limit=2&skip=0")
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["items"]) == 2
+    assert data["total"] == 5
+
+    response = client.get("/irs/?limit=2&skip=2")
+    assert len(response.json()["items"]) == 2
+
+# --- Get ---
+
+def test_get_ir_success(client: TestClient, test_ir):
+    response = client.get(f"/irs/{test_ir.id}")
+    assert response.status_code == 200
+    assert response.json()["name"] == "Test IR"
+
+def test_get_ir_not_found(client: TestClient):
+    response = client.get("/irs/99999")
+    assert response.status_code == 404
+    assert "IR not found" in response.json()["detail"]
+
+# --- Delete ---
+
+def test_delete_ir_success(client: TestClient, auth_headers, test_ir):
+    response = client.delete(f"/irs/{test_ir.id}", headers=auth_headers)
+    assert response.status_code == 204
+
+    response = client.get(f"/irs/{test_ir.id}")
+    assert response.status_code == 404
+
+def test_delete_ir_not_owner(client: TestClient, auth_headers_2, test_ir, test_user_2):
+    response = client.delete(f"/irs/{test_ir.id}", headers=auth_headers_2)
+    assert response.status_code == 403
+    assert "Not authorized" in response.json()["detail"]
+
+def test_delete_ir_not_found(client: TestClient, auth_headers):
+    response = client.delete("/irs/99999", headers=auth_headers)
+    assert response.status_code == 404
+
+def test_delete_ir_unauthenticated(client: TestClient, test_ir):
+    response = client.delete(f"/irs/{test_ir.id}")
+    assert response.status_code == 401
+
+# --- Favorites ---
+
+def test_add_favorite_success(client: TestClient, auth_headers, test_ir, test_user):
+    response = client.post(f"/irs/{test_ir.id}/favorite", headers=auth_headers)
+    assert response.status_code == 201
+    assert "Added to favorites" in response.json()["message"]
+
+def test_add_favorite_already_favorited(client: TestClient, auth_headers, test_ir, test_user):
+    client.post(f"/irs/{test_ir.id}/favorite", headers=auth_headers)
+    response = client.post(f"/irs/{test_ir.id}/favorite", headers=auth_headers)
+    assert response.status_code == 400
+    assert "Already in favorites" in response.json()["detail"]
+
+def test_add_favorite_ir_not_found(client: TestClient, auth_headers):
+    response = client.post("/irs/99999/favorite", headers=auth_headers)
+    assert response.status_code == 404
+
+def test_add_favorite_unauthenticated(client: TestClient, test_ir):
+    response = client.post(f"/irs/{test_ir.id}/favorite")
+    assert response.status_code == 401
+
+def test_remove_favorite_success(client: TestClient, auth_headers, test_ir, test_user):
+    client.post(f"/irs/{test_ir.id}/favorite", headers=auth_headers)
+    response = client.delete(f"/irs/{test_ir.id}/favorite", headers=auth_headers)
+    assert response.status_code == 204
+
+def test_remove_favorite_not_in_favorites(client: TestClient, auth_headers, test_ir, test_user):
+    response = client.delete(f"/irs/{test_ir.id}/favorite", headers=auth_headers)
+    assert response.status_code == 404
+    assert "Not in favorites" in response.json()["detail"]
+
+def test_remove_favorite_unauthenticated(client: TestClient, test_ir):
+    response = client.delete(f"/irs/{test_ir.id}/favorite")
+    assert response.status_code == 401
