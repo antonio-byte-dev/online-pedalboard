@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import engine, Base
-from app.models import User, IR, Favorite
+import app.models  # noqa: F401 - registers models with SQLAlchemy
 from app.routers import irs, auth
 
 Base.metadata.create_all(bind=engine)
