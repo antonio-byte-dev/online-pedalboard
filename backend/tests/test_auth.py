@@ -82,3 +82,34 @@ def test_me_invalid_token(client: TestClient):
         "Authorization": "Bearer invalidtoken"
     })
     assert response.status_code == 401
+
+def test_recent_ir_none_when_no_usage(client: TestClient, auth_headers):
+    response = client.get("/auth/me/recent-ir", headers=auth_headers)
+    assert response.status_code == 200
+    assert response.json() is None
+
+def test_recent_ir_returns_last_used(client: TestClient, auth_headers, test_ir, db):
+    from app.models.ir import UserIRUsage
+    from datetime import datetime, timezone
+    db.add(UserIRUsage(
+        user_id=db.query(__import__('app.models.user', fromlist=['User']).User)
+                  .filter_by(username='testuser').first().id,
+        ir_id=test_ir.id,
+        last_used_at=datetime.now(timezone.utc)
+    ))
+    db.commit()
+    response = client.get("/auth/me/recent-ir", headers=auth_headers)
+    assert response.status_code == 200
+    assert response.json()["id"] == test_ir.id
+
+def test_recent_ir_unauthenticated(client: TestClient):
+    response = client.get("/auth/me/recent-ir")
+    assert response.status_code == 401
+
+def test_stats_returns_expected_shape(client: TestClient, auth_headers, test_ir):
+    response = client.get("/auth/me/stats", headers=auth_headers)
+    assert response.status_code == 200
+    data = response.json()
+    assert "total_irs" in data
+    assert "user_uploads" in data
+    assert "last_login" in data

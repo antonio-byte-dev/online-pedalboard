@@ -8,6 +8,7 @@ export function useAudioEngine() {
   let postCabinetWorklet = null
   let cabinetConvolver = null
   let masterGain = null
+  let pendingIR = null   // stores ArrayBuffer if loadCustomIR called before ctx exists
 
   const micReady = ref(false)
   const effectsActive = reactive({
@@ -24,7 +25,6 @@ export function useAudioEngine() {
 
       const maxSamples = Math.min(audioBuffer.length, ctx.sampleRate * 0.1)
 
-      // Convert mono IR to stereo by duplicating the channel
       const stereoBuffer = ctx.createBuffer(2, maxSamples, ctx.sampleRate)
       const monoData = audioBuffer.getChannelData(0).subarray(0, maxSamples)
       stereoBuffer.getChannelData(0).set(monoData)
@@ -65,15 +65,21 @@ export function useAudioEngine() {
     masterGain.channelCountMode = 'explicit'
     masterGain.channelInterpretation = 'speakers'
 
-    // Chain: preCabinet → IR → postCabinet → master → destination
     preCabinetWorklet.connect(cabinetConvolver)
     cabinetConvolver.connect(postCabinetWorklet)
     postCabinetWorklet.connect(masterGain)
     masterGain.connect(ctx.destination)
 
-    await loadIRToConvolver(cabinetConvolver, '/ir/default.wav')
+    // If an IR was loaded before audio started, apply it now
+    // Otherwise fall back to the default IR
+    if (pendingIR) {
+      const audioBuffer = await ctx.decodeAudioData(pendingIR)
+      cabinetConvolver.buffer = audioBuffer
+      pendingIR = null
+    } else {
+      await loadIRToConvolver(cabinetConvolver, '/ir/default.wav')
+    }
 
-    // Apply initial effect states
     preCabinetWorklet.parameters.get('distAmount').value = effectsActive.distortion ? 50 : 0
     postCabinetWorklet.port.postMessage({
       delayMix:      effectsActive.delay  ? 0.5 : 0.0,
@@ -111,6 +117,24 @@ export function useAudioEngine() {
 
     micReady.value = true
   }
+  function stopAudio() {
+  if (micStream) {
+    micStream.getTracks().forEach(track => track.stop())
+    micStream = null
+  }
+  if (ctx) {
+    ctx.close()
+    ctx = null
+  }
+  // reset all node refs so startAudio can rebuild cleanly if needed
+  sourceNode          = null
+  preCabinetWorklet   = null
+  postCabinetWorklet  = null
+  cabinetConvolver    = null
+  masterGain          = null
+  pendingIR           = null
+  micReady.value      = false
+}
 
   function toggleEffect(effectName) {
     effectsActive[effectName] = !effectsActive[effectName]
@@ -133,8 +157,17 @@ export function useAudioEngine() {
     }
   }
 
-  async function loadCustomIR(file) {
-    const arrayBuffer = await file.arrayBuffer()
+  async function loadCustomIR(input) {
+    const arrayBuffer = input instanceof ArrayBuffer
+      ? input
+      : await input.arrayBuffer()
+
+    if (!ctx || !cabinetConvolver) {
+      // Audio not started yet — store for when startAudio() is called
+      pendingIR = arrayBuffer
+      return
+    }
+
     const audioBuffer = await ctx.decodeAudioData(arrayBuffer)
     cabinetConvolver.buffer = audioBuffer
   }
@@ -187,7 +220,7 @@ export function useAudioEngine() {
   return {
     micReady,
     effectsActive,
-    startAudio,
+    startAudio,stopAudio,
     toggleEffect,
     loadCustomIR,
     setDist,

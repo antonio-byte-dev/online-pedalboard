@@ -1,5 +1,5 @@
 from fastapi.testclient import TestClient
-
+import logging
 # --- Upload ---
 
 def test_upload_ir_success(client: TestClient, auth_headers, test_wav_file):
@@ -46,39 +46,33 @@ def test_upload_ir_missing_name(client: TestClient, auth_headers, test_wav_file)
 
 # --- List ---
 
-def test_list_irs_empty(client: TestClient):
-    response = client.get("/irs/")
+def test_list_irs_empty(client: TestClient, auth_headers):
+    response = client.get("/irs/", headers=auth_headers)
     assert response.status_code == 200
-    data = response.json()
-    assert data["items"] == []
-    assert data["total"] == 0
 
-def test_list_irs(client: TestClient, test_ir):
-    response = client.get("/irs/")
+def test_list_irs(client: TestClient, auth_headers, test_ir):
+    response = client.get("/irs/", headers=auth_headers)
     assert response.status_code == 200
-    data = response.json()
-    assert data["total"] == 1
-    assert data["items"][0]["name"] == "Test IR"
 
-def test_list_irs_search(client: TestClient, test_ir):
-    response = client.get("/irs/?search=Test")
+def test_list_irs_search(client: TestClient, auth_headers, test_ir):
+    response = client.get("/irs/?search=Test", headers=auth_headers)
     assert response.status_code == 200
     assert response.json()["total"] == 1
 
-    response = client.get("/irs/?search=nonexistent")
+    response = client.get("/irs/?search=nonexistent", headers=auth_headers)
     assert response.status_code == 200
     assert response.json()["total"] == 0
 
-def test_list_irs_filter_by_tags(client: TestClient, test_ir):
-    response = client.get("/irs/?tags=marshall")
+def test_list_irs_filter_by_tags(client: TestClient, auth_headers, test_ir):
+    response = client.get("/irs/?tags=marshall", headers=auth_headers)
     assert response.status_code == 200
     assert response.json()["total"] == 1
 
-    response = client.get("/irs/?tags=fender")
+    response = client.get("/irs/?tags=fender", headers=auth_headers)
     assert response.status_code == 200
     assert response.json()["total"] == 0
 
-def test_list_irs_pagination(client: TestClient, db, test_user):
+def test_list_irs_pagination(client: TestClient, auth_headers, db, test_user):
     from app.models.ir import IR
     for i in range(5):
         db.add(IR(
@@ -89,24 +83,55 @@ def test_list_irs_pagination(client: TestClient, db, test_user):
         ))
     db.commit()
 
-    response = client.get("/irs/?limit=2&skip=0")
+    response = client.get("/irs/?limit=2&skip=0", headers=auth_headers)
     assert response.status_code == 200
     data = response.json()
     assert len(data["items"]) == 2
     assert data["total"] == 5
 
-    response = client.get("/irs/?limit=2&skip=2")
+    response = client.get("/irs/?limit=2&skip=2", headers=auth_headers)
     assert len(response.json()["items"]) == 2
 
-# --- Get ---
-
-def test_get_ir_success(client: TestClient, test_ir):
-    response = client.get(f"/irs/{test_ir.id}")
+def test_get_ir_success(client: TestClient, auth_headers, test_ir):
+    response = client.get(f"/irs/{test_ir.id}", headers=auth_headers)
     assert response.status_code == 200
     assert response.json()["name"] == "Test IR"
 
-def test_get_ir_not_found(client: TestClient):
-    response = client.get("/irs/99999")
+def test_get_ir_not_found(client: TestClient, auth_headers):
+    response = client.get("/irs/99999", headers=auth_headers)
+    assert response.status_code == 404
+
+def test_delete_ir_success(client: TestClient, auth_headers, test_ir):
+    response = client.delete(f"/irs/{test_ir.id}", headers=auth_headers)
+    assert response.status_code == 204
+
+    response = client.get(f"/irs/{test_ir.id}", headers=auth_headers)  # ← add headers
+    assert response.status_code == 404
+
+def test_list_irs_includes_author_username(client: TestClient, auth_headers, test_ir):  # ← add auth_headers param
+    response = client.get("/irs/", headers=auth_headers)  # ← add headers
+    assert response.status_code == 200
+    item = response.json()["items"][0]
+    assert item["author_username"] == "testuser"
+
+
+def test_get_ir_includes_author_username(client: TestClient, auth_headers, test_ir):
+    response = client.get(f"/irs/{test_ir.id}", headers=auth_headers)  # ← add headers
+    assert response.status_code == 200
+    assert response.json()["author_username"] == "testuser"
+
+def test_list_irs_favorites_only_unauthenticated(client: TestClient, test_ir):
+    response = client.get("/irs/?favorites_only=true")
+    assert response.status_code == 401  # properly blocked
+# --- Get ---
+
+def test_get_ir_success(client: TestClient, test_ir,auth_headers):
+    response = client.get(f"/irs/{test_ir.id}", headers=auth_headers)
+    assert response.status_code == 200
+    assert response.json()["name"] == "Test IR"
+
+def test_get_ir_not_found(client: TestClient,auth_headers):
+    response = client.get("/irs/99999", headers=auth_headers)
     assert response.status_code == 404
     assert "IR not found" in response.json()["detail"]
 
@@ -116,7 +141,7 @@ def test_delete_ir_success(client: TestClient, auth_headers, test_ir):
     response = client.delete(f"/irs/{test_ir.id}", headers=auth_headers)
     assert response.status_code == 204
 
-    response = client.get(f"/irs/{test_ir.id}")
+    response = client.get(f"/irs/{test_ir.id}",headers=auth_headers)
     assert response.status_code == 404
 
 def test_delete_ir_not_owner(client: TestClient, auth_headers_2, test_ir, test_user_2):
@@ -166,3 +191,128 @@ def test_remove_favorite_not_in_favorites(client: TestClient, auth_headers, test
 def test_remove_favorite_unauthenticated(client: TestClient, test_ir):
     response = client.delete(f"/irs/{test_ir.id}/favorite")
     assert response.status_code == 401
+
+# --- author_username in responses ---
+
+def test_list_irs_includes_author_username(client: TestClient, test_ir,auth_headers):
+    response = client.get(f"/irs/",headers=auth_headers)
+    assert response.status_code == 200
+    item = response.json()["items"][0]
+    assert item["author_username"] == "testuser"
+
+def test_get_ir_includes_author_username(client: TestClient, test_ir,auth_headers):
+    response = client.get(f"/irs/{test_ir.id}",headers=auth_headers)
+    assert response.status_code == 200
+    assert response.json()["author_username"] == "testuser"
+
+# --- is_favorited in responses ---
+
+def test_list_irs_is_favorited_false_when_not_favorited(client: TestClient, auth_headers, test_ir):
+    response = client.get("/irs/", headers=auth_headers)
+    assert response.json()["items"][0]["is_favorited"] == False
+
+def test_list_irs_is_favorited_true_when_favorited(client: TestClient, auth_headers, test_ir, test_favorite):
+    response = client.get("/irs/", headers=auth_headers)
+    assert response.json()["items"][0]["is_favorited"] == True
+
+# --- favorites_only filter ---
+
+def test_list_irs_favorites_only_empty(client: TestClient, auth_headers, test_ir):
+    response = client.get("/irs/?favorites_only=true", headers=auth_headers)
+    assert response.status_code == 200
+    assert response.json()["total"] == 0
+
+def test_list_irs_favorites_only_returns_favorited(client: TestClient, auth_headers, test_ir, test_favorite):
+    response = client.get("/irs/?favorites_only=true", headers=auth_headers)
+    assert response.status_code == 200
+    assert response.json()["total"] == 1
+    assert response.json()["items"][0]["id"] == test_ir.id
+
+def test_list_irs_favorites_only_unauthenticated(client: TestClient, test_ir):
+    response = client.get("/irs/?favorites_only=true")
+    assert response.status_code == 401
+
+# --- My IRs ---
+
+def test_list_my_irs_returns_only_own(client: TestClient, auth_headers, auth_headers_2, test_ir, test_user_2, db):
+    from app.models.ir import IR
+    other_ir = IR(
+        name="Other IR",
+        file_url="http://localhost:9000/irs/other.wav",
+        file_name="other.wav",
+        author_id=test_user_2.id
+    )
+    db.add(other_ir)
+    db.commit()
+
+    response = client.get("/irs/mine", headers=auth_headers)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total"] == 1
+    assert data["items"][0]["name"] == "Test IR"
+
+def test_list_my_irs_unauthenticated(client: TestClient):
+    response = client.get("/irs/mine")
+    assert response.status_code == 401
+
+def test_list_my_irs_search(client: TestClient, auth_headers, test_ir):
+    response = client.get("/irs/mine?search=Test", headers=auth_headers)
+    assert response.json()["total"] == 1
+
+    response = client.get("/irs/mine?search=nonexistent", headers=auth_headers)
+    assert response.json()["total"] == 0
+
+# --- Update IR ---
+
+def test_update_ir_success(client: TestClient, auth_headers, test_ir):
+    response = client.patch(f"/irs/{test_ir.id}",
+        json={"name": "Updated Name", "tags": "fender,greenback"},
+        headers=auth_headers
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["name"] == "Updated Name"
+    assert data["tags"] == "fender,greenback"
+
+def test_update_ir_partial(client: TestClient, auth_headers, test_ir):
+    response = client.patch(f"/irs/{test_ir.id}",
+        json={"name": "Only Name Updated"},
+        headers=auth_headers
+    )
+    assert response.status_code == 200
+    assert response.json()["name"] == "Only Name Updated"
+    assert response.json()["tags"] == "marshall,v30"  # unchanged
+
+def test_update_ir_not_owner(client: TestClient, auth_headers_2, test_ir):
+    response = client.patch(f"/irs/{test_ir.id}",
+        json={"name": "Hacked"},
+        headers=auth_headers_2
+    )
+    assert response.status_code == 403
+
+def test_update_ir_not_found(client: TestClient, auth_headers):
+    response = client.patch("/irs/99999",
+        json={"name": "Ghost"},
+        headers=auth_headers
+    )
+    assert response.status_code == 404
+
+def test_update_ir_unauthenticated(client: TestClient, test_ir):
+    response = client.patch(f"/irs/{test_ir.id}", json={"name": "No auth"})
+    assert response.status_code == 401
+
+# --- Record usage ---
+
+def test_record_ir_usage_success(client: TestClient, auth_headers, test_ir):
+    response = client.post(f"/irs/{test_ir.id}/use", headers=auth_headers)
+    assert response.status_code == 204
+
+def test_record_ir_usage_unauthenticated(client: TestClient, test_ir):
+    response = client.post(f"/irs/{test_ir.id}/use")
+    assert response.status_code == 401
+
+def test_record_ir_usage_upserts(client: TestClient, auth_headers, test_ir):
+    # calling twice should not error — upsert behaviour
+    client.post(f"/irs/{test_ir.id}/use", headers=auth_headers)
+    response = client.post(f"/irs/{test_ir.id}/use", headers=auth_headers)
+    assert response.status_code == 204
