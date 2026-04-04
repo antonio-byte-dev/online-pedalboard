@@ -25,8 +25,6 @@ import { useRouter } from 'vue-router'
 
 import BasePanel from '@/components/ui/BasePanel.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
-import BaseButton from '@/components/ui/BaseButton.vue'
-
 const router = useRouter()
 
 const username = ref('')
