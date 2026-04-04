@@ -3,6 +3,16 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.database import Base
 
+class UserIRUsage(Base):
+    __tablename__ = "user_ir_usage"
+
+    user_id      = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    ir_id        = Column(Integer, ForeignKey("irs.id",   ondelete="CASCADE"), primary_key=True)
+    last_used_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+    user = relationship("User", back_populates="ir_usage")
+    ir   = relationship("IR")
+    
 class IR(Base):
     __tablename__ = "irs"
 

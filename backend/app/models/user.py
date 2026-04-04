@@ -11,6 +11,7 @@ class User(Base):
     email      = Column(String, unique=True, index=True, nullable=False)
     password   = Column(String, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-
+    last_login = Column(DateTime(timezone=True), nullable=True)
+    ir_usage = relationship("UserIRUsage", back_populates="user")
     irs       = relationship("IR", back_populates="author")
     favorites = relationship("Favorite", back_populates="user")

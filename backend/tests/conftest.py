@@ -8,6 +8,9 @@ from app.database import Base, get_db
 from app.routers.auth import hash_password
 from app.models.user import User
 from app.models.ir import IR
+from app.models.ir import IR, UserIRUsage
+from app.models.favorite import Favorite
+
 
 # --- In-memory SQLite database for tests ---
 
@@ -120,6 +123,24 @@ def test_ir(db, test_user):
     db.refresh(ir)
     return ir
 
+@pytest.fixture
+def test_favorite(db, test_user, test_ir):
+    favorite = Favorite(user_id=test_user.id, ir_id=test_ir.id)
+    db.add(favorite)
+    db.commit()
+    return favorite
+
+@pytest.fixture
+def test_ir_usage(db, test_user, test_ir):
+    from datetime import datetime, timezone
+    usage = UserIRUsage(
+        user_id=test_user.id,
+        ir_id=test_ir.id,
+        last_used_at=datetime.now(timezone.utc)
+    )
+    db.add(usage)
+    db.commit()
+    return usage
 @pytest.fixture
 def test_wav_file():
     # Minimal valid WAV file bytes

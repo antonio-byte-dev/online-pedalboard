@@ -24,6 +24,7 @@ globalThis.AudioWorkletNode = function() {
 }
 const mockAudioContext = {
   resume:          vi.fn().mockResolvedValue(undefined),
+  close: vi.fn(),
   decodeAudioData: vi.fn().mockResolvedValue({
     length: 100,
     numberOfChannels: 1,
@@ -52,6 +53,7 @@ const mockAudioContext = {
   audioWorklet: {
     addModule: vi.fn().mockResolvedValue(undefined)
   }
+  
 }
 
 globalThis.AudioContext = function () { return mockAudioContext }
@@ -64,9 +66,13 @@ globalThis.fetch = vi.fn(() => Promise.resolve({
   arrayBuffer: () => Promise.resolve(new ArrayBuffer(100))
 }))
 
+
 globalThis.navigator = {
   mediaDevices: {
-    getUserMedia: vi.fn().mockResolvedValue({ id: 'mock-stream' })
+    getUserMedia: vi.fn().mockResolvedValue({
+      id: 'mock-stream',
+      getTracks: () => [{ stop: vi.fn() }]
+    })
   }
 }
 
@@ -76,6 +82,7 @@ import { useAudioEngine } from '../useAudioEngine'
 
 beforeEach(() => {
   vi.clearAllMocks()
+  mockAudioContext.close.mockReset()  
   workletCallCount = 0
   mockParam.value = 0
   mockAudioContext.resume.mockResolvedValue(undefined)
@@ -112,7 +119,10 @@ beforeEach(() => {
   globalThis.fetch.mockReturnValue(Promise.resolve({
     arrayBuffer: () => Promise.resolve(new ArrayBuffer(100))
   }))
-  globalThis.navigator.mediaDevices.getUserMedia.mockResolvedValue({ id: 'mock-stream' })
+  globalThis.navigator.mediaDevices.getUserMedia.mockResolvedValue({
+  id: 'mock-stream',
+  getTracks: () => [{ stop: vi.fn() }]   // ← add getTracks here too
+})
 })
 
 describe('useAudioEngine', () => {
@@ -171,6 +181,43 @@ describe('useAudioEngine', () => {
     const { startAudio } = useAudioEngine()
     await startAudio()
     expect(fetch).toHaveBeenCalledWith('/ir/default.wav')
+  })
+  // --- stopAudio ---
+
+  it('stopAudio sets micReady to false', async () => {
+    const { micReady, startAudio, stopAudio } = useAudioEngine()
+    await startAudio()
+    expect(micReady.value).toBe(true)
+    stopAudio()
+    expect(micReady.value).toBe(false)
+  })
+
+  it('stopAudio stops all microphone tracks', async () => {
+    const mockTrack = { stop: vi.fn() }
+    globalThis.navigator.mediaDevices.getUserMedia.mockResolvedValue({
+      getTracks: () => [mockTrack]
+    })
+  const { startAudio, stopAudio } = useAudioEngine()
+  await startAudio()
+  stopAudio()
+  expect(mockTrack.stop).toHaveBeenCalled()
+})
+
+  it('stopAudio closes the AudioContext', async () => {
+    mockAudioContext.close = vi.fn()
+    const { startAudio, stopAudio } = useAudioEngine()
+    await startAudio()
+    stopAudio()
+    expect(mockAudioContext.close).toHaveBeenCalled()
+  })
+
+  it('startAudio can be called again cleanly after stopAudio', async () => {
+    const { startAudio, stopAudio, micReady } = useAudioEngine()
+    await startAudio()
+    stopAudio()
+    await startAudio()
+    expect(micReady.value).toBe(true)
+    expect(mockAudioContext.resume).toHaveBeenCalledTimes(2)
   })
 
   // --- toggleEffect ---
