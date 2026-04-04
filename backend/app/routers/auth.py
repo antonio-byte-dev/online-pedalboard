@@ -10,8 +10,6 @@ from app.models.ir import IR
 from app.schemas.user import UserCreate, UserResponse, Token, UserStatsResponse
 from app.config import settings
 from app.dependencies import get_current_user
-from sqlalchemy.dialects.postgresql import insert as pg_insert
-from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.ir import UserIRUsage
 from app.schemas.ir import IRResponse
 from typing import Optional  

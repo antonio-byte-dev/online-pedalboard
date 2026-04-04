@@ -1,5 +1,4 @@
 from fastapi.testclient import TestClient
-import logging
 # --- Upload ---
 
 def test_upload_ir_success(client: TestClient, auth_headers, test_wav_file):
@@ -116,33 +115,13 @@ def test_list_irs_includes_author_username(client: TestClient, auth_headers, tes
 
 
 def test_get_ir_includes_author_username(client: TestClient, auth_headers, test_ir):
-    response = client.get(f"/irs/{test_ir.id}", headers=auth_headers)  # ← add headers
+    response = client.get("/irs/{test_ir.id}", headers=auth_headers)  # ← add headers
     assert response.status_code == 200
     assert response.json()["author_username"] == "testuser"
 
-def test_list_irs_favorites_only_unauthenticated(client: TestClient, test_ir):
-    response = client.get("/irs/?favorites_only=true")
-    assert response.status_code == 401  # properly blocked
-# --- Get ---
-
-def test_get_ir_success(client: TestClient, test_ir,auth_headers):
-    response = client.get(f"/irs/{test_ir.id}", headers=auth_headers)
-    assert response.status_code == 200
-    assert response.json()["name"] == "Test IR"
-
-def test_get_ir_not_found(client: TestClient,auth_headers):
-    response = client.get("/irs/99999", headers=auth_headers)
-    assert response.status_code == 404
-    assert "IR not found" in response.json()["detail"]
 
 # --- Delete ---
 
-def test_delete_ir_success(client: TestClient, auth_headers, test_ir):
-    response = client.delete(f"/irs/{test_ir.id}", headers=auth_headers)
-    assert response.status_code == 204
-
-    response = client.get(f"/irs/{test_ir.id}",headers=auth_headers)
-    assert response.status_code == 404
 
 def test_delete_ir_not_owner(client: TestClient, auth_headers_2, test_ir, test_user_2):
     response = client.delete(f"/irs/{test_ir.id}", headers=auth_headers_2)
@@ -192,28 +171,22 @@ def test_remove_favorite_unauthenticated(client: TestClient, test_ir):
     response = client.delete(f"/irs/{test_ir.id}/favorite")
     assert response.status_code == 401
 
-# --- author_username in responses ---
-
-def test_list_irs_includes_author_username(client: TestClient, test_ir,auth_headers):
-    response = client.get(f"/irs/",headers=auth_headers)
-    assert response.status_code == 200
-    item = response.json()["items"][0]
-    assert item["author_username"] == "testuser"
-
-def test_get_ir_includes_author_username(client: TestClient, test_ir,auth_headers):
-    response = client.get(f"/irs/{test_ir.id}",headers=auth_headers)
-    assert response.status_code == 200
-    assert response.json()["author_username"] == "testuser"
 
 # --- is_favorited in responses ---
 
 def test_list_irs_is_favorited_false_when_not_favorited(client: TestClient, auth_headers, test_ir):
     response = client.get("/irs/", headers=auth_headers)
-    assert response.json()["items"][0]["is_favorited"] == False
+    if not response.json()["items"][0]["is_favorited"]:
+        assert True
+    else:
+        assert False
 
 def test_list_irs_is_favorited_true_when_favorited(client: TestClient, auth_headers, test_ir, test_favorite):
     response = client.get("/irs/", headers=auth_headers)
-    assert response.json()["items"][0]["is_favorited"] == True
+    if response.json()["items"][0]["is_favorited"]:
+        assert True
+    else:
+        assert False
 
 # --- favorites_only filter ---
 

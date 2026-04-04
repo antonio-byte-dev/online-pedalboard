@@ -7,7 +7,6 @@ from app.main import app
 from app.database import Base, get_db
 from app.routers.auth import hash_password
 from app.models.user import User
-from app.models.ir import IR
 from app.models.ir import IR, UserIRUsage
 from app.models.favorite import Favorite
 
