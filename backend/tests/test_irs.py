@@ -115,7 +115,7 @@ def test_list_irs_includes_author_username(client: TestClient, auth_headers, tes
 
 
 def test_get_ir_includes_author_username(client: TestClient, auth_headers, test_ir):
-    response = client.get("/irs/{test_ir.id}", headers=auth_headers)  # ← add headers
+    response = client.get(f"/irs/{test_ir.id}", headers=auth_headers)  # ← add headers
     assert response.status_code == 200
     assert response.json()["author_username"] == "testuser"
 
