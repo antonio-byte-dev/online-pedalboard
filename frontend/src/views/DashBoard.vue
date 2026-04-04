@@ -131,7 +131,6 @@ import { useRouter } from 'vue-router'
 const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 
 const router = useRouter()
-const uploadInput = ref(null)
 const booted = ref(false)
 const statsLoading = ref(true)
 
@@ -226,15 +225,7 @@ onMounted(() => {
   fetchRecentIR() 
 })
 
-function triggerUpload() {
-  uploadInput.value?.click()
-}
 
-function onUpload(e) {
-  const file = e.target.files?.[0]
-  if (!file) return
-  console.log('Upload IR:', file.name)
-}
 </script>
 
 <style scoped>
