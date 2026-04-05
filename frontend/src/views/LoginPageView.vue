@@ -30,7 +30,7 @@ import { useRouter } from 'vue-router'
 const router = useRouter()
 const username = ref('')
 const password = ref('')
- 
+console.log("API URL:", import.meta.env.VITE_API_URL);
 const goRegister = () => {
   router.push('/register')
 }
