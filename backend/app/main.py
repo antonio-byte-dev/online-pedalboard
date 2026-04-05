@@ -3,8 +3,15 @@ from fastapi.middleware.cors import CORSMiddleware
 import app.models  # noqa: F401 - registers models with SQLAlchemy
 from app.routers import irs, auth
 import os
+from contextlib import asynccontextmanager
+from app.database import engine, Base
 
-app = FastAPI(title="Pedalboard IR API")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    Base.metadata.create_all(bind=engine)
+    yield
+
+app = FastAPI(title="Pedalboard IR API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
