@@ -49,6 +49,7 @@ jobs:
           MINIO_SECRET_KEY: ${{ secrets.MINIO_SECRET_KEY }}
           MINIO_BUCKET: ${{ secrets.MINIO_BUCKET }}
           MINIO_PUBLIC_URL: ${{ secrets.MINIO_PUBLIC_URL }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
 
   deploy-frontend:
     name: Deploy Frontend → Vercel
