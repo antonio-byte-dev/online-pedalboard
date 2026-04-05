@@ -122,6 +122,11 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
+            
+            mkdir -p ~/pedalboard-backend/nginx/certs
+            cp /etc/letsencrypt/archive/antonio-byte-dev.dedyn.io/fullchain1.pem ~/pedalboard-backend/nginx/certs/fullchain.pem
+            cp /etc/letsencrypt/archive/antonio-byte-dev.dedyn.io/privkey1.pem ~/pedalboard-backend/nginx/certs/privkey.pem
+            
             mkdir -p ~/pedalboard-backend
             cd ~/pedalboard-backend
 
