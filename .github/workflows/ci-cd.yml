@@ -59,11 +59,18 @@ jobs:
 
       - name: Run ruff check
         run: ruff check .
-        
+
       - name: Run tests
         working-directory: backend
         env:
           DATABASE_URL: postgresql://test:test@localhost:5432/test
+          SECRET_KEY: ci-secret-key-not-used
+          MINIO_ENDPOINT: localhost:9000
+          MINIO_ACCESS_KEY: minioadmin
+          MINIO_SECRET_KEY: minioadmin
+          MINIO_BUCKET: pedalboard
+          MINIO_PUBLIC_URL: http://localhost:9000
+          RESEND_API_KEY: ""
         run: pytest tests/
 
   deploy-frontend:
