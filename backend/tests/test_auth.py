@@ -272,7 +272,10 @@ def test_first_user_is_admin(client: TestClient):
         "password": "password123"
     })
     assert response.status_code == 201
-    assert response.json()["is_admin"] == True
+    if response.json()["is_admin"]:
+        assert True
+    else:
+        assert False
 
 def test_second_user_is_not_admin(client: TestClient):
     client.post("/auth/register", json={
@@ -286,4 +289,7 @@ def test_second_user_is_not_admin(client: TestClient):
         "password": "password123"
     })
     assert response.status_code == 201
-    assert response.json()["is_admin"] == False
+    if not response.json()["is_admin"]:
+        assert True
+    else:
+        assert False
