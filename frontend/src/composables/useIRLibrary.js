@@ -205,6 +205,14 @@ async function toggleFavorite(id) {
     params.skip = 0
     listIRs()
   }
+  function isAdmin() {
+  try {
+    const token = localStorage.getItem('token')
+    if (!token) return false
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    return payload.is_admin === true
+  } catch { return false }
+}
 
   const currentPage = () => Math.floor(params.skip / params.limit) + 1
   const totalPages  = () => Math.ceil(total.value / params.limit)
@@ -218,7 +226,7 @@ async function toggleFavorite(id) {
     // actions
     listIRs, getIR, fetchIRArrayBuffer, uploadIR, deleteIR,
     recordIRUsage,fetchRecentIR,
-    updateIR,listMyIRs,toggleFavorite,
+    updateIR,listMyIRs,toggleFavorite,isAdmin,
     // pagination
     nextPage, prevPage, search, filterByTag,
     currentPage, totalPages, hasNext, hasPrev,

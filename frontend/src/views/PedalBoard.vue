@@ -173,8 +173,9 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 14px 32px;
-  border-bottom: 1px solid var(--border, #2f2f2f);
+  border-bottom: 1px solid #444444;
   flex-shrink: 0;
+  background: #1e1e1e;
 }
 
 .pb-nav__title {
@@ -183,7 +184,7 @@ onUnmounted(() => {
   font-weight: 600;
   letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: var(--text-label, #5a5a5a);
+  color: #d0d0d0;
 }
 
 .pb-nav__back,
@@ -196,7 +197,7 @@ onUnmounted(() => {
   font-weight: 600;
   letter-spacing: 0.15em;
   text-transform: uppercase;
-  color: var(--text-secondary, #8a8a8a);
+  color: #c0c0c0;
   background: none;
   border: none;
   cursor: pointer;
@@ -206,7 +207,7 @@ onUnmounted(() => {
 
 .pb-nav__back:hover,
 .pb-nav__link:hover {
-  color: var(--text-primary, #f2f2f2);
+  color: #f5f5f5;
 }
 
 /* — IR status bar — */

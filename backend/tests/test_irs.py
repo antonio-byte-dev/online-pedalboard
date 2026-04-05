@@ -1,4 +1,5 @@
 from fastapi.testclient import TestClient
+from app.models import IR
 # --- Upload ---
 
 def test_upload_ir_success(client: TestClient, auth_headers, test_wav_file):
@@ -289,3 +290,58 @@ def test_record_ir_usage_upserts(client: TestClient, auth_headers, test_ir):
     client.post(f"/irs/{test_ir.id}/use", headers=auth_headers)
     response = client.post(f"/irs/{test_ir.id}/use", headers=auth_headers)
     assert response.status_code == 204
+
+# Admin tests
+def test_admin_can_delete_any_ir(client: TestClient, db):
+    from app.models.user import User
+    from app.routers.auth import hash_password
+
+    # Create admin (first user)
+    admin = User(username="admin", email="admin@test.com",
+                 password=hash_password("adminpass"), is_admin=True)
+    db.add(admin)
+    db.commit()
+
+    # Create IR owned by a different user
+    other = User(username="other", email="other@test.com",
+                 password=hash_password("otherpass"))
+    db.add(other)
+    db.commit()
+
+    ir = IR(name="Other IR", file_url="http://localhost:9000/irs/x.wav",
+            file_name="x.wav", author_id=other.id)
+    db.add(ir)
+    db.commit()
+
+    # Login as admin
+    res = client.post("/auth/login", data={"username": "admin", "password": "adminpass"})
+    headers = {"Authorization": f"Bearer {res.json()['access_token']}"}
+
+    response = client.delete(f"/irs/{ir.id}", headers=headers)
+    assert response.status_code == 204
+
+def test_admin_can_update_any_ir(client: TestClient, db):
+    from app.models.user import User
+    from app.routers.auth import hash_password
+
+    admin = User(username="admin", email="admin@test.com",
+                 password=hash_password("adminpass"), is_admin=True)
+    db.add(admin)
+    db.commit()
+
+    other = User(username="other", email="other@test.com",
+                 password=hash_password("otherpass"))
+    db.add(other)
+    db.commit()
+
+    ir = IR(name="Other IR", file_url="http://localhost:9000/irs/x.wav",
+            file_name="x.wav", author_id=other.id)
+    db.add(ir)
+    db.commit()
+
+    res = client.post("/auth/login", data={"username": "admin", "password": "adminpass"})
+    headers = {"Authorization": f"Bearer {res.json()['access_token']}"}
+
+    response = client.patch(f"/irs/{ir.id}", json={"name": "Admin Renamed"}, headers=headers)
+    assert response.status_code == 200
+    assert response.json()["name"] == "Admin Renamed"

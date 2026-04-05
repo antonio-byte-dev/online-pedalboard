@@ -1,14 +1,14 @@
 :root {
   --bg-board:       #111111;
-  --bg-pedal:       #181818;
-  --bg-pedal-top:   #202020;
+  --bg-pedal:       #1c1c1c;      /* slightly lighter */
+  --bg-pedal-top:   #242424;      /* slightly lighter */
 
-  --border:         #2f2f2f;
-  --border-bright:  #3a3a3a;
+  --border:         #333333;      /* was #2f2f2f */
+  --border-bright:  #444444;      /* was #3a3a3a */
 
-  --text-primary:   #f2f2f2;
-  --text-secondary: #8a8a8a;
-  --text-label:     #5a5a5a;
+  --text-primary:   #f5f5f5;      /* was #f2f2f2 — already near white, keep */
+  --text-secondary: #c8c8c8;      /* was #a0a0a0 — much brighter */
+  --text-label:     #999999;
 }
 
 /* Subtle radial highlight */
