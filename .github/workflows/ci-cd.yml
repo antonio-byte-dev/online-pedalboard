@@ -136,6 +136,7 @@ jobs:
             MINIO_ACCESS_KEY=${{ secrets.MINIO_ACCESS_KEY }}
             MINIO_SECRET_KEY=${{ secrets.MINIO_SECRET_KEY }}
             RESEND_API_KEY=${{ secrets.RESEND_API_KEY }}
+            FRONTEND_URL=${{secrets.FRONTEND_URL}}
             EOF
 
             docker-compose down
