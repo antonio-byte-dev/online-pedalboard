@@ -20,7 +20,10 @@ def test_forgot_password_creates_token(client: TestClient, test_user, db):
         client.post("/auth/forgot-password", json={"email": "test@test.com"})
     token = db.query(PasswordResetToken).filter_by(user_id=test_user.id).first()
     assert token is not None
-    assert token.used == False
+    if not token.used:
+        assert True
+    else:
+        assert False
 
 def test_forgot_password_invalidates_previous_token(client: TestClient, test_user, db):
     from app.models.password_reset import PasswordResetToken
@@ -71,7 +74,10 @@ def test_reset_password_token_is_marked_used(client: TestClient, test_user, db):
     })
 
     db.refresh(token)
-    assert token.used == True
+    if token.used:
+        assert True
+    else:
+        assert False
 
 def test_reset_password_updates_password(client: TestClient, test_user, db):
     from app.models.password_reset import PasswordResetToken
@@ -142,7 +148,7 @@ def test_reset_password_expired_token(client: TestClient, test_user, db):
     })
     assert response.status_code == 400
     assert "expired" in response.json()["detail"].lower()
-    
+
 def test_register_success(client: TestClient):
     response = client.post("/auth/register", json={
         "username": "newuser",

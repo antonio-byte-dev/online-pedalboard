@@ -9,7 +9,7 @@ from app.routers.auth import hash_password
 from app.models.user import User
 from app.models.ir import IR, UserIRUsage
 from app.models.favorite import Favorite
-from app.models.password_reset import PasswordResetToken  
+
 
 # --- In-memory SQLite database for tests ---
 
