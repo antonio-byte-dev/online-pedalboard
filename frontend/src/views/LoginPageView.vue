@@ -52,12 +52,11 @@ const login = async () => {
 
     const data = await res.json()
 
-    // 💾 Save token
+   
     localStorage.setItem('token', data.access_token)
 
     alert('Welcome back. Rig loaded.')
 
-    // 🚀 Redirect
     router.push('/dashboard')
 
   } catch (err) {
