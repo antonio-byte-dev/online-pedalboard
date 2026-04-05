@@ -26,7 +26,7 @@ import { useRouter } from 'vue-router'
 import BasePanel from '@/components/ui/BasePanel.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
 const router = useRouter()
-
+const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 const username = ref('')
 const email = ref('')
 const password = ref('')
@@ -39,7 +39,7 @@ const register = async () => {
   }
 
   try {
-    const res = await fetch('http://localhost:8000/auth/register', {
+    const res = await fetch(`${BASE_URL}/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

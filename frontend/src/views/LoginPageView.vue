@@ -28,9 +28,9 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
  
 const router = useRouter()
+const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 const username = ref('')
 const password = ref('')
-console.log("API URL:", import.meta.env.VITE_API_URL);
 const goRegister = () => {
   router.push('/register')
 }
@@ -40,7 +40,7 @@ const login = async () => {
     formData.append('username', username.value)
     formData.append('password', password.value)
 
-    const res = await fetch('http://localhost:8000/auth/login', {
+    const res = await fetch(`${BASE_URL}/auth/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded'
