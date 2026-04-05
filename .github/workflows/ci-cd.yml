@@ -132,6 +132,8 @@ jobs:
             POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
             POSTGRES_DB=${{ secrets.POSTGRES_DB }}
             MINIO_ROOT_USER=${{ secrets.MINIO_ROOT_USER }}
+            MINIO_BUCKET=${{secrets.MINIO_BUCKET}}
+            MINIO_PUBLIC_URL=${{secrets.MINIO_PUBLIC_URL}}
             MINIO_ROOT_PASSWORD=${{ secrets.MINIO_ROOT_PASSWORD }}
             MINIO_ENDPOINT=minio:9000
             MINIO_ACCESS_KEY=${{ secrets.MINIO_ACCESS_KEY }}
