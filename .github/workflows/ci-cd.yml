@@ -110,6 +110,7 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
           source: "backend/"
           target: "~/pedalboard-backend/"
           strip_components: 1
