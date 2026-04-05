@@ -4,7 +4,6 @@ from app.database import engine, Base
 import app.models  # noqa: F401 - registers models with SQLAlchemy
 from app.routers import irs, auth
 
-Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Pedalboard IR API")
 
