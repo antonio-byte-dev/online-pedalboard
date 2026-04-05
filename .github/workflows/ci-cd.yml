@@ -122,8 +122,8 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            mkdir -p ~/pedalboard-backend/backend
-            cd ~/pedalboard-backend/backend
+            mkdir -p ~/pedalboard-backend
+            cd ~/pedalboard-backend
 
             cat > .env << 'EOF'
             SECRET_KEY=${{ secrets.SECRET_KEY }}
