@@ -9,8 +9,7 @@ services:
       - EMAIL=your-email@example.com
       - NGINX_PROXY_CONTAINER=nginx
     volumes:
-      - ./nginx/conf.d:/etc/nginx/conf.d
-      - ./nginx/certs:/etc/letsencrypt
+      - /etc/letsencrypt/live/antonio-byte-dev.dedyn.io:/etc/nginx/certs:ro
     depends_on:
       - backend
 
