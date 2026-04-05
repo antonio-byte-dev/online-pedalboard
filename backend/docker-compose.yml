@@ -4,13 +4,15 @@ services:
     ports:
       - "80:80"
       - "443:443"
+    environment:
+      - DOMAINS=antonio-byte-dev.dedyn.io
+      - EMAIL=your-email@example.com
+      - NGINX_PROXY_CONTAINER=nginx
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/certs:/etc/nginx/certs:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./nginx/certs:/etc/letsencrypt
     depends_on:
       - backend
-    networks:
-      - pedalboard-net
 
   backend:
     build:
