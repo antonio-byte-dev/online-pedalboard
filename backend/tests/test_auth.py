@@ -262,3 +262,28 @@ def test_stats_returns_expected_shape(client: TestClient, auth_headers, test_ir)
     assert "total_irs" in data
     assert "user_uploads" in data
     assert "last_login" in data
+
+# Admin tests 
+
+def test_first_user_is_admin(client: TestClient):
+    response = client.post("/auth/register", json={
+        "username": "adminuser",
+        "email":    "admin@test.com",
+        "password": "password123"
+    })
+    assert response.status_code == 201
+    assert response.json()["is_admin"] == True
+
+def test_second_user_is_not_admin(client: TestClient):
+    client.post("/auth/register", json={
+        "username": "first",
+        "email":    "first@test.com",
+        "password": "password123"
+    })
+    response = client.post("/auth/register", json={
+        "username": "second",
+        "email":    "second@test.com",
+        "password": "password123"
+    })
+    assert response.status_code == 201
+    assert response.json()["is_admin"] == False

@@ -245,7 +245,7 @@ onMounted(() => {
   text-transform: uppercase;
   background: none;
   border: 1px solid rgba(255,255,255,0.08);
-  color: #606070;
+  color: #d0d0d0;
   padding: 4px 12px;
   border-radius: 2px;
   cursor: pointer;

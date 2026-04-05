@@ -9,7 +9,7 @@ from app.database import get_db
 from app.models.ir import IR
 from app.models.user import User as UserModel
 from app.models.favorite import Favorite
-from app.dependencies import get_current_user
+from app.dependencies import get_current_user, get_admin_user
 from app.models.user import User
 from app.models.ir import UserIRUsage
 from app.schemas.ir import IRResponse, IRListResponse, IRUpdate
@@ -109,15 +109,16 @@ def update_ir(
     ir = db.query(IR).filter(IR.id == ir_id).first()
     if not ir:
         raise HTTPException(status_code=404, detail="IR not found")
-    if ir.author_id != current_user.id:
+    if ir.author_id != current_user.id and not current_user.is_admin:  # ← admin bypass
         raise HTTPException(status_code=403, detail="Not authorized")
+
     if payload.name is not None:
         ir.name = payload.name
     if payload.tags is not None:
         ir.tags = payload.tags
     db.commit()
     db.refresh(ir)
-    return ir
+    return enrich_ir(ir, db, current_user)
 
 @router.get("/", response_model=IRListResponse)
 def list_irs(
@@ -161,12 +162,12 @@ def get_ir(
 def delete_ir(
     ir_id:        int,
     db:           Session = Depends(get_db),
-    current_user: User    = Depends(get_current_user)
+    current_user: User    = Depends(get_current_user),
 ):
     ir = db.query(IR).filter(IR.id == ir_id).first()
     if not ir:
         raise HTTPException(status_code=404, detail="IR not found")
-    if ir.author_id != current_user.id:
+    if ir.author_id != current_user.id and not current_user.is_admin:  # ← admin bypass
         raise HTTPException(status_code=403, detail="Not authorized")
 
     storage.delete_ir(ir.file_name)

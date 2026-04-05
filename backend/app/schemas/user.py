@@ -13,7 +13,7 @@ class UserResponse(BaseModel):
     email: str
     created_at: datetime
     last_login: Optional[datetime] = None
-
+    is_admin:   bool = False
     model_config = { "from_attributes": True }
 
 class Token(BaseModel):

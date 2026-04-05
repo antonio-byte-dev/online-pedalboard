@@ -85,12 +85,12 @@ def verify_password(plain: str, hashed: str) -> bool:
     return pwd_context.verify(plain, hashed)
 
 
-def create_access_token(user_id: int) -> str:
+def create_access_token(user_id: int, is_admin: bool = False) -> str:
     expire = datetime.now(timezone.utc) + timedelta(
         minutes=settings.access_token_expire_minutes
     )
     return jwt.encode(
-        {"sub": str(user_id), "exp": expire},
+        {"sub": str(user_id), "exp": expire, "is_admin": is_admin},
         settings.secret_key,
         algorithm=settings.algorithm
     )
@@ -103,16 +103,18 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
     if db.query(User).filter(User.username == user.username).first():
         raise HTTPException(status_code=400, detail="Username already taken")
 
+    is_first_user = db.query(User).count() == 0  # ← first user check
+
     new_user = User(
         username=user.username,
         email=user.email,
-        password=hash_password(user.password)
+        password=hash_password(user.password),
+        is_admin=is_first_user,  # ← assign admin
     )
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
     return new_user
-
 
 @router.post("/login", response_model=Token)
 def login(
@@ -128,7 +130,7 @@ def login(
     db.commit()
 
     return {
-        "access_token": create_access_token(user.id),
+        "access_token": create_access_token(user.id,is_admin=user.is_admin),
         "token_type":   "bearer"
     }
 
