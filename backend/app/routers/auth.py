@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Body, BackgroundTasks
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta, timezone
@@ -14,10 +14,71 @@ from app.models.ir import UserIRUsage
 from app.schemas.ir import IRResponse
 from typing import Optional  
 from sqlalchemy import select 
+
+import secrets
+from datetime import datetime, timezone, timedelta
+from app.models.password_reset import PasswordResetToken
+from app.email import send_password_reset_email
 router = APIRouter()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
+# — Request reset —
+@router.post("/forgot-password", status_code=204)
+def forgot_password(
+    email:            str = Body(..., embed=True),
+    background_tasks: BackgroundTasks = None,
+    db:               Session = Depends(get_db),
+):
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        return
+
+    db.query(PasswordResetToken).filter_by(user_id=user.id, used=False).update({"used": True})
+    db.commit()
+
+    token = secrets.token_urlsafe(32)
+    expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
+
+    db.add(PasswordResetToken(
+        user_id=user.id,
+        token=token,
+        expires_at=expires_at,
+    ))
+    db.commit()
+
+    background_tasks.add_task(
+        send_password_reset_email, user.email, user.username, token
+    )
+
+
+# — Reset password —
+@router.post("/reset-password", status_code=204)
+def reset_password(
+    token:        str = Body(..., embed=True),
+    new_password: str = Body(..., embed=True),
+    db:           Session = Depends(get_db),
+):
+    record = db.query(PasswordResetToken).filter_by(token=token, used=False).first()
+
+    if not record:
+        raise HTTPException(status_code=400, detail="Invalid or expired token")
+
+    # Normalize to naive UTC for SQLite compatibility
+    expires_at = record.expires_at
+    if expires_at.tzinfo is not None:
+        expires_at = expires_at.replace(tzinfo=None)
+    now = datetime.utcnow()
+
+    if expires_at < now:
+        raise HTTPException(status_code=400, detail="Token has expired")
+
+    user = db.query(User).filter(User.id == record.user_id).first()
+    user.password = hash_password(new_password)
+    record.used = True
+    db.commit()
+
+    
 def hash_password(password: str) -> str:
     return pwd_context.hash(password)
 

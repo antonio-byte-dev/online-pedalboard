@@ -13,6 +13,9 @@
         No rig yet?
         <span @click="goRegister">CREATE</span>
       </p>
+      <p class="switch">
+      <span @click="router.push('/forgot-password')">Forgot password?</span>
+      </p>
     </BasePanel>
   </div>
 </template>
