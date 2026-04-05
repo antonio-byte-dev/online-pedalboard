@@ -14,9 +14,7 @@ from app.models.ir import UserIRUsage
 from app.schemas.ir import IRResponse
 from typing import Optional  
 from sqlalchemy import select 
-
 import secrets
-from datetime import datetime, timezone, timedelta
 from app.models.password_reset import PasswordResetToken
 from app.email import send_password_reset_email
 router = APIRouter()
@@ -78,7 +76,7 @@ def reset_password(
     record.used = True
     db.commit()
 
-    
+
 def hash_password(password: str) -> str:
     return pwd_context.hash(password)
 
