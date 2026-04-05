@@ -26,30 +26,45 @@ jobs:
       - run: npm run test:unit -- --run
       - run: npm run build
 
+  
   ci-backend:
-    name: Backend - Lint + Test
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
+    
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          sparse-checkout: backend
+
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: pip install -r requirements.txt
-      - run: ruff check .              # linter
-      - run: pytest                    # tests
+
+      - name: Install dependencies
+        run: pip install -r backend/requirements.txt
+
+      - name: Run ruff check
+        run: ruff check .
+        
+      - name: Run tests
+        working-directory: backend
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          SECRET_KEY: ${{ secrets.SECRET_KEY }}
-          MINIO_ENDPOINT: ${{ secrets.MINIO_ENDPOINT }}
-          MINIO_ACCESS_KEY: ${{ secrets.MINIO_ACCESS_KEY }}
-          MINIO_SECRET_KEY: ${{ secrets.MINIO_SECRET_KEY }}
-          MINIO_BUCKET: ${{ secrets.MINIO_BUCKET }}
-          MINIO_PUBLIC_URL: ${{ secrets.MINIO_PUBLIC_URL }}
-          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          DATABASE_URL: postgresql://test:test@localhost:5432/test
+        run: pytest tests/
 
   deploy-frontend:
     name: Deploy Frontend → Vercel
@@ -64,6 +79,7 @@ jobs:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+
           vercel-args: '--prod'
           working-directory: frontend
 
