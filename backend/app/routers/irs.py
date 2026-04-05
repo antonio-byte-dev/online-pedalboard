@@ -9,7 +9,7 @@ from app.database import get_db
 from app.models.ir import IR
 from app.models.user import User as UserModel
 from app.models.favorite import Favorite
-from app.dependencies import get_current_user, get_admin_user
+from app.dependencies import get_current_user
 from app.models.user import User
 from app.models.ir import UserIRUsage
 from app.schemas.ir import IRResponse, IRListResponse, IRUpdate
