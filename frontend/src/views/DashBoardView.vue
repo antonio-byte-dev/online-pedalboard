@@ -269,47 +269,14 @@ onMounted(() => {
 }
 
 /* Grid texture */
-.dashboard::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
-  background-size: 48px 48px;
-  pointer-events: none;
-}
+
 
 /* Radial accent glow in top-left */
-.dashboard::after {
-  content: '';
-  position: absolute;
-  top: -160px;
-  left: -160px;
-  width: 520px;
-  height: 520px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(232,255,71,0.06) 0%, transparent 70%);
-  pointer-events: none;
-}
+
 
 .dashboard > * { position: relative; z-index: 1; }
 
-/* — Scan-line boot effect — */
-.dashboard__scanline {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    to bottom,
-    transparent 0%,
-    rgba(232, 255, 71, 0.03) 50%,
-    transparent 100%
-  );
-  background-size: 100% 4px;
-  pointer-events: none;
-  z-index: 10;
-  animation: scanline-sweep 0.8s linear forwards;
-}
+
 .dashboard__scanline--done {
   opacity: 0;
   transition: opacity 0.4s;
@@ -324,7 +291,6 @@ onMounted(() => {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
   padding-bottom: 24px;
   animation: fade-up 0.5s ease both;
 }

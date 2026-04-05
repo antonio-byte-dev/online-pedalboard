@@ -67,22 +67,52 @@ jobs:
           vercel-args: '--prod'
           working-directory: frontend
 
+  
   deploy-backend:
-    name: Deploy Backend → VPS
+    name: deploy-backend -> VPS
     needs: ci-backend
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-
     steps:
-      - uses: actions/checkout@v4
-      - name: Deploy por SSH
+      - name: Checkout backend
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            backend
+          sparse-checkout-cone-mode: true
+
+      - name: Copy backend to VPS
+        uses: appleboy/scp-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          source: "backend/"
+          target: "~/pedalboard-backend/"
+          strip_components: 1
+
+      - name: Write .env and deploy
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            cd /app/pedalboard/backend
-            git pull origin main
-            pip install -r requirements.txt
-            systemctl restart pedalboard-api
+            cd ~/pedalboard-backend/backend
+
+            cat > .env << 'EOF'
+            SECRET_KEY=${{ secrets.SECRET_KEY }}
+            DATABASE_URL=${{ secrets.DATABASE_URL }}
+            POSTGRES_USER=${{ secrets.POSTGRES_USER }}
+            POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+            POSTGRES_DB=${{ secrets.POSTGRES_DB }}
+            MINIO_ROOT_USER=${{ secrets.MINIO_ROOT_USER }}
+            MINIO_ROOT_PASSWORD=${{ secrets.MINIO_ROOT_PASSWORD }}
+            MINIO_ENDPOINT=minio:9000
+            MINIO_ACCESS_KEY=${{ secrets.MINIO_ACCESS_KEY }}
+            MINIO_SECRET_KEY=${{ secrets.MINIO_SECRET_KEY }}
+            RESEND_API_KEY=${{ secrets.RESEND_API_KEY }}
+            EOF
+
+            docker-compose down
+            docker-compose up -d --build
