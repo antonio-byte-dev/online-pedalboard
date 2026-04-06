@@ -1,6 +1,16 @@
 # Online Pedalboard
+## Live Demo
 
-A web-based guitar pedalboard that lets users upload, browse, and audition Impulse Responses (IRs) in real time. Built as a portfolio project to demonstrate full-stack development with a focus on low-latency audio processing in the browser.
+The application is available at:
+
+- 🌐 https://online-pedalboard.vercel.app/
+
+## Summary
+A web-based guitar pedalboard that lets users upload, browse, and audition Impulse Responses (IRs) in real time. Built as a portfolio project to demonstrate full-stack development with a focus on low-latency audio processing in the browser as well as knowledge in CI/CD Pipelines and containerized applications.
+
+The motivation behind this project stems from the widespread adoption of impulse responses (IRs) among modern guitarists, particularly as digital modeling continues to gain prominence. Despite their popularity, there is currently no seamless way to audition IRs without first downloading them and loading them into a digital audio workstation (DAW) or hardware/software pedalboard.
+
+This limitation makes the process of discovering suitable IRs both time-consuming and potentially discouraging. Even when users have a clear idea of the desired cabinet characteristics, it remains difficult to predict how a given IR will interact with their specific guitar and signal chain. Furthermore, the audio samples typically provided in IR libraries do not always offer an accurate or representative preview, which further complicates the selection process.
 
 ## Overview
 
@@ -133,17 +143,30 @@ VITE_API_URL=http://localhost:8000
 The project uses GitHub Actions for automated deployment. The frontend is handled automatically by Vercel on every push. The backend deploys to a VPS via SSH.
 
 ### How it works
+### Backend
+On every push to `main`:
+1. The CI job runs ruff to check for unused variables and bad practices
+2. Then it runs the test suite against a ephemeral PostgreSQL service container
+3. If tests pass, the deploy job SSHs into the VPS using a key stored in GitHub Secrets
+4. The backend folder is copied to the VPS via SCP
+5. The workflow writes a fresh `.env` from GitHub Secrets directly onto the server
+6. `docker compose up -d --build` rebuilds and restarts the containers
 
+
+This means the VPS never needs to touch git, it just receives files and runs Docker. The only one-time manual setup required on the VPS is installing Docker.
+```
+Note: Code quality checks (e.g., Ruff) and tests run on every push, regardless of the branch, but deployment is only triggered for the main branch.
+```
+### Frontend
 On every push to `main`:
 
-1. The CI job runs the test suite against a ephemeral PostgreSQL service container
-2. If tests pass, the deploy job SSHs into the VPS using a key stored in GitHub Secrets
-3. The backend folder is copied to the VPS via SCP
-4. The workflow writes a fresh `.env` from GitHub Secrets directly onto the server
-5. `docker compose up -d --build` rebuilds and restarts the containers
+1. Run ESLint to enforce code quality standards
+2. Execute the test suite using Vitest
+3. Deploy the application to Vercel
 
-This means the VPS never needs to touch git — it just receives files and runs Docker. The only one-time manual setup required on the VPS is installing Docker.
-
+```
+Note: Linting and tests run on every push, regardless of the branch.
+```
 ### Infrastructure
 
 The VPS runs four containers on an internal Docker network (`pedalboard-net`):
