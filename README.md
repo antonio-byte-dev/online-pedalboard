@@ -5,6 +5,9 @@ The application is available at:
 
 - 🌐 https://online-pedalboard.vercel.app/
 
+Read the official documentation at:
+
+- 📄 https://online-pedalboard-docs.vercel.app/
 ## Summary
 A web-based guitar pedalboard that lets users upload, browse, and audition Impulse Responses (IRs) in real time. Built as a portfolio project to demonstrate full-stack development with a focus on low-latency audio processing in the browser as well as knowledge in CI/CD Pipelines and containerized applications.
 
