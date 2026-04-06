@@ -55,7 +55,7 @@ async function fetchRecentIR() {
     query.set('limit', p.limit)
 
     try {
-      const res = await fetch(`${BASE_URL}/irs?${query}`, {
+      const res = await fetch(`${BASE_URL}/irs/?${query}`, {
         headers: authHeaders()
       })
       if (!res.ok) throw new Error(`Failed to fetch IRs (${res.status})`)
