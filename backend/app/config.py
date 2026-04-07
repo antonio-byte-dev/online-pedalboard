@@ -5,7 +5,11 @@ class Settings(BaseSettings):
     secret_key: str
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 60
-
+    postgres_db: str
+    postgres_user: str
+    postgres_password: str
+    minio_root_user: str
+    minio_root_password: str
     minio_endpoint: str
     minio_access_key: str
     minio_secret_key: str
