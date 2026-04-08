@@ -64,6 +64,11 @@ jobs:
         working-directory: backend
         env:
           DATABASE_URL: postgresql://test:test@localhost:5432/test
+          POSTGRES_DB: test
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          MINIO_ROOT_USER: minioadmin
+          MINIO_ROOT_PASSWORD: minioadmin
           SECRET_KEY: ci-secret-key-not-used
           MINIO_ENDPOINT: localhost:9000
           MINIO_ACCESS_KEY: minioadmin
