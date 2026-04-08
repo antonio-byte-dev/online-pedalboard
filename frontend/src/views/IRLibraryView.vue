@@ -69,7 +69,7 @@ async function submitUpload() {
   try {
     await uploadIR({
       name:        uploadName.value.trim(),
-      description: uploadDesc.value.trim() || undefined,
+      description: undefined,
       tags:        uploadTags.value.trim() || undefined,
       file:        uploadFile.value,
     })
@@ -283,14 +283,6 @@ onMounted(() => listIRs())
                 />
               </div>
 
-              <div class="modal__field">
-                <label class="modal__label">Description</label>
-                <input
-                  class="modal__input"
-                  v-model="uploadDesc"
-                  placeholder="Optional notes"
-                />
-              </div>
 
               <div class="modal__field">
                 <label class="modal__label">Tags</label>
